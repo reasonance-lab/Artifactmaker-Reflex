@@ -275,7 +275,7 @@ def _notes_and_transcript_section() -> rx.Component:
 
 
 def _recorder_script() -> rx.Component:
-    return rx.el.script("""
+    return rx.script("""
 let mediaRecorder;
 let audioChunks = [];
 
