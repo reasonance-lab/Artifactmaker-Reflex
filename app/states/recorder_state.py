@@ -13,7 +13,9 @@ class RecorderState(rx.State):
     image_files: list[str] = []
     video_files: list[str] = []
     audio_file: str | None = None
-    recording_status: Literal["idle", "recording", "processing", "error"] = "idle"
+    recording_status: Literal[
+        "idle", "recording", "processing", "error", "unsupported", "permission_denied"
+    ] = "idle"
     transcript: str = ""
 
     @rx.var
@@ -106,13 +108,27 @@ class RecorderState(rx.State):
     def start_recording(self):
         self.recording_status = "recording"
         yield
-        yield rx.call_script("startRecording()")
+        yield rx.call_script(
+            "startRecording()", callback=RecorderState.set_recording_status
+        )
 
     @rx.event
     def stop_recording(self):
         self.recording_status = "processing"
         yield
         yield rx.call_script("stopRecording()")
+
+    @rx.event
+    def set_recording_status(self, status: str):
+        if status in [
+            "idle",
+            "recording",
+            "processing",
+            "error",
+            "unsupported",
+            "permission_denied",
+        ]:
+            self.recording_status = status
 
     @rx.event(background=True)
     async def process_audio_and_transcribe(self, audio_blob: rx.UploadFile):

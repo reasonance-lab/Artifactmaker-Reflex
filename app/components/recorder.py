@@ -191,45 +191,58 @@ def _voice_recorder() -> rx.Component:
     return rx.el.div(
         _form_section_header("mic", "Voice Recording"),
         rx.el.div(
-            rx.el.div(
-                rx.el.button(
-                    rx.icon("play", class_name="mr-2"),
-                    "Start Recording",
-                    on_click=RecorderState.start_recording(),
-                    style={"background_color": RecorderState.accent_color},
-                    class_name="flex items-center justify-center px-6 py-3 rounded-xl text-white font-semibold transition-colors shadow-sm w-full",
+            rx.match(
+                RecorderState.recording_status,
+                (
+                    "idle",
+                    rx.el.button(
+                        rx.icon("play", class_name="mr-2"),
+                        "Start Recording",
+                        on_click=RecorderState.start_recording,
+                        style={"background_color": RecorderState.accent_color},
+                        class_name="flex items-center justify-center px-6 py-3 rounded-xl text-white font-semibold transition-colors shadow-sm w-full",
+                    ),
                 ),
-                class_name=rx.cond(
-                    RecorderState.recording_status == "idle", "w-full", "hidden"
+                (
+                    "recording",
+                    rx.el.div(
+                        rx.el.button(
+                            rx.icon("square", class_name="mr-2"),
+                            "Stop Recording",
+                            on_click=RecorderState.stop_recording,
+                            class_name="flex items-center justify-center px-6 py-3 rounded-xl bg-red-500 text-white font-semibold transition-colors shadow-sm w-full",
+                        ),
+                        rx.el.div(
+                            rx.icon(
+                                "radio", class_name="w-5 h-5 text-red-500 animate-pulse"
+                            ),
+                            rx.el.span(
+                                "Recording...", class_name="text-sm text-gray-600"
+                            ),
+                            class_name="flex items-center space-x-2 mt-3 justify-center",
+                        ),
+                        class_name="w-full",
+                    ),
                 ),
-            ),
-            rx.el.div(
-                rx.el.button(
-                    rx.icon("square", class_name="mr-2"),
-                    "Stop Recording",
-                    on_click=RecorderState.stop_recording(),
-                    class_name="flex items-center justify-center px-6 py-3 rounded-xl bg-red-500 text-white font-semibold transition-colors shadow-sm w-full",
+                (
+                    "processing",
+                    rx.el.div(
+                        rx.spinner(class_name="mr-2"),
+                        "Processing...",
+                        class_name="flex items-center justify-center px-6 py-3 rounded-xl bg-yellow-500 text-white font-semibold w-full",
+                    ),
                 ),
+                ("unsupported", _troubleshooting_card("unsupported")),
+                ("permission_denied", _troubleshooting_card("permission_denied")),
+                ("error", _troubleshooting_card("error")),
                 rx.el.div(
-                    rx.icon("radio", class_name="w-5 h-5 text-red-500 animate-pulse"),
-                    rx.el.span("Recording...", class_name="text-sm text-gray-600"),
-                    class_name="flex items-center space-x-2 mt-3 justify-center",
-                ),
-                class_name=rx.cond(
-                    RecorderState.recording_status == "recording", "w-full", "hidden"
-                ),
-            ),
-            rx.el.div(
-                rx.el.div(
-                    rx.spinner(class_name="mr-2"),
-                    "Processing...",
-                    class_name="flex items-center justify-center px-6 py-3 rounded-xl bg-yellow-500 text-white font-semibold w-full",
-                ),
-                class_name=rx.cond(
-                    RecorderState.recording_status == "processing", "w-full", "hidden"
+                    "Unknown state", class_name="text-red-500 p-4 bg-red-50 rounded-lg"
                 ),
             ),
             class_name="p-4 bg-white rounded-xl border border-gray-200 shadow-sm flex justify-center items-center flex-col",
+        ),
+        on_mount=rx.call_script(
+            "checkRecorderSupport()", callback=RecorderState.set_recording_status
         ),
     )
 
@@ -266,27 +279,51 @@ def _recorder_script() -> rx.Component:
 let mediaRecorder;
 let audioChunks = [];
 
+window.checkRecorderSupport = function() {
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+        console.error('MediaRecorder API not supported.');
+        return 'unsupported';
+    }
+    return 'idle';
+}
+
 window.startRecording = async function() {
+    if (checkRecorderSupport() === 'unsupported') {
+        return 'unsupported';
+    }
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
+            if (event.data.size > 0) audioChunks.push(event.data);
         };
         mediaRecorder.onstop = async () => {
+            if (audioChunks.length === 0) {
+                console.error('No audio data recorded.');
+                return 'error'; 
+            }
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
             const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
             const upload_event = `_reflex.event_handlers.process_audio_and_transcribe`;
-            const uploader = new window.FileReader();
-            uploader.onload = (e) => {
-                window[upload_event](e.target.result, {file: file});
-            };
-            uploader.readAsDataURL(file);
+            if (window[upload_event]) {
+                const uploader = new window.FileReader();
+                uploader.onload = (e) => {
+                    window[upload_event](e.target.result, {file: file});
+                };
+                uploader.readAsDataURL(file);
+            } else {
+                console.error('Reflex event handler not found.');
+            }
             audioChunks = [];
         };
         mediaRecorder.start();
+        return 'recording';
     } catch (err) {
-        console.error('Error starting recording:', err);
+        console.error('Error starting recording:', err.name, err.message);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            return 'permission_denied';
+        }
+        return 'error';
     }
 }
 
@@ -296,6 +333,41 @@ window.stopRecording = function() {
     }
 }
 """)
+
+
+def _troubleshooting_card(error_type: str) -> rx.Component:
+    messages = {
+        "unsupported": {
+            "icon": "server-off",
+            "title": "Browser Not Supported",
+            "body": "Your browser does not support the required MediaRecorder API for voice recording. Please use a modern browser like Chrome, Firefox, or Safari.",
+            "color": "orange",
+        },
+        "permission_denied": {
+            "icon": "mic-off",
+            "title": "Microphone Access Denied",
+            "body": "Microphone access is required for voice recording. Please allow access in your browser's settings and refresh the page.",
+            "color": "red",
+        },
+        "error": {
+            "icon": "alert-triangle",
+            "title": "Recording Error",
+            "body": "An unexpected error occurred. Please try again or check your browser's console for more details.",
+            "color": "red",
+        },
+    }
+    message = messages.get(error_type, messages["error"])
+    return rx.el.div(
+        rx.icon(
+            message["icon"], class_name="size-8 mb-2", style={"color": message["color"]}
+        ),
+        rx.el.h4(
+            message["title"],
+            class_name=f"text-lg font-semibold text-{message['color']}-700",
+        ),
+        rx.el.p(message["body"], class_name="text-sm text-gray-600 text-center"),
+        class_name="flex flex-col items-center justify-center p-4 space-y-2",
+    )
 
 
 def _form_section_header(icon: str, title: str) -> rx.Component:
