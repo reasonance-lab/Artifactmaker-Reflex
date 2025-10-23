@@ -13,6 +13,7 @@ class EntryData(TypedDict, total=False):
 
 
 class GalleryState(rx.State):
+    route_class_slug: str = ""
     selected_class_slug: str = ""
     available_dates: list[str] = []
     current_date_index: int = -1
@@ -20,8 +21,8 @@ class GalleryState(rx.State):
 
     @rx.event
     def on_load(self):
-        self.selected_class_slug = self.router.page.params.get(
-            "class_slug", list(classes.CLASS_INFO.keys())[0]
+        self.selected_class_slug = (
+            self.route_class_slug or list(classes.CLASS_INFO.keys())[0]
         )
         return GalleryState.load_dates_for_class
 
