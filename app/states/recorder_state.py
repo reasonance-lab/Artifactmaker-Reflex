@@ -105,12 +105,14 @@ class RecorderState(rx.State):
     @rx.event
     def start_recording(self):
         self.recording_status = "recording"
-        return rx.call_script("startRecording()")
+        yield
+        yield rx.call_script("startRecording()")
 
     @rx.event
     def stop_recording(self):
         self.recording_status = "processing"
-        return rx.call_script("stopRecording()")
+        yield
+        yield rx.call_script("stopRecording()")
 
     @rx.event(background=True)
     async def process_audio_and_transcribe(self, audio_blob: rx.UploadFile):
