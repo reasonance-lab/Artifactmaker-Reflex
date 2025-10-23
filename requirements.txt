@@ -1,0 +1,6 @@
+
+reflex==0.8.15a1
+PyGithub
+python-slugify
+Pillow
+faster-whisper
