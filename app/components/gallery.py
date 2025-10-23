@@ -4,12 +4,28 @@ from app.states.gallery_state import GalleryState
 
 def gallery_page() -> rx.Component:
     return rx.el.div(
-        _sidebar(),
-        rx.el.main(
-            rx.cond(GalleryState.has_entries, _gallery_content(), _empty_state()),
-            class_name="flex-1 bg-gray-50 p-4 sm:p-6 lg:p-8",
+        rx.cond(
+            GalleryState.has_entries,
+            rx.el.div(
+                _sidebar(),
+                rx.el.main(
+                    rx.el.div(
+                        _gallery_content(),
+                        class_name="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8",
+                    ),
+                    class_name="flex-1 overflow-auto bg-gray-50",
+                ),
+                class_name="flex h-screen bg-gray-50",
+            ),
+            rx.el.div(
+                _sidebar(),
+                rx.el.main(
+                    _empty_state(), class_name="flex-1 overflow-auto bg-gray-50"
+                ),
+                class_name="flex h-screen bg-gray-50",
+            ),
         ),
-        class_name="flex min-h-screen w-full font-['Inter'] bg-white",
+        class_name="font-['Inter']",
     )
 
 
@@ -23,9 +39,9 @@ def _sidebar() -> rx.Component:
                     class_name="flex items-center gap-2 font-bold text-xl",
                 ),
                 rx.el.h2(
-                    GalleryState.selected_class_info.get("emoji", "")
+                    GalleryState.selected_class_info["emoji"]
                     + " "
-                    + GalleryState.selected_class_info.get("name", ""),
+                    + GalleryState.selected_class_info["name"],
                     class_name="text-xl font-bold tracking-tight",
                 ),
                 class_name="flex h-16 items-center border-b px-6 gap-4",
@@ -85,27 +101,27 @@ def _gallery_content() -> rx.Component:
         ),
         rx.el.div(
             rx.cond(
-                GalleryState.current_entry.get("images").length() > 0,
+                GalleryState.current_entry["images"].length() > 0,
                 _image_grid(),
                 rx.fragment(),
             ),
             rx.cond(
-                GalleryState.current_entry.get("videos").length() > 0,
+                GalleryState.current_entry["videos"].length() > 0,
                 _video_section(),
                 rx.fragment(),
             ),
             rx.cond(
-                GalleryState.current_entry.get("audio_path"),
+                GalleryState.current_entry["audio_path"],
                 _audio_section(),
                 rx.fragment(),
             ),
             rx.cond(
-                GalleryState.current_entry.get("typed_text") != "",
+                GalleryState.current_entry["typed_text"] != "",
                 _notes_section(),
                 rx.fragment(),
             ),
             rx.cond(
-                GalleryState.current_entry.get("transcript") != "",
+                GalleryState.current_entry["transcript"] != "",
                 _transcript_section(),
                 rx.fragment(),
             ),
@@ -120,7 +136,7 @@ def _image_grid() -> rx.Component:
         "Image Gallery",
         rx.el.div(
             rx.foreach(
-                GalleryState.current_entry.get("images", []),
+                GalleryState.current_entry["images"],
                 lambda img_path: rx.el.div(
                     rx.el.image(
                         src=rx.get_upload_url(img_path.to_string()),
@@ -140,7 +156,7 @@ def _video_section() -> rx.Component:
         "Video Clips",
         rx.el.div(
             rx.foreach(
-                GalleryState.current_entry.get("videos", []),
+                GalleryState.current_entry["videos"],
                 lambda video_path: rx.el.video(
                     src=rx.get_upload_url(video_path.to_string()),
                     controls=True,
@@ -157,9 +173,7 @@ def _audio_section() -> rx.Component:
         "mic",
         "Audio Recording",
         rx.el.audio(
-            src=rx.get_upload_url(
-                GalleryState.current_entry.get("audio_path").to_string()
-            ),
+            src=rx.get_upload_url(GalleryState.current_entry["audio_path"].to_string()),
             controls=True,
             class_name="w-full",
         ),
@@ -171,7 +185,7 @@ def _notes_section() -> rx.Component:
         "square-pen",
         "Notes",
         rx.el.p(
-            GalleryState.current_entry.get("typed_text"),
+            GalleryState.current_entry["typed_text"],
             class_name="text-gray-700 whitespace-pre-wrap",
         ),
     )
@@ -182,7 +196,7 @@ def _transcript_section() -> rx.Component:
         "quote",
         "Transcript",
         rx.el.p(
-            GalleryState.current_entry.get("transcript"),
+            GalleryState.current_entry["transcript"],
             class_name="text-gray-700 whitespace-pre-wrap",
         ),
     )
@@ -209,7 +223,7 @@ def _empty_state() -> rx.Component:
             "No Entries Found", class_name="mt-4 text-xl font-semibold text-gray-700"
         ),
         rx.el.p(
-            f"There are no entries for {GalleryState.selected_class_info.get('name', '')} yet.",
+            f"There are no entries for {GalleryState.selected_class_info['name']} yet.",
             class_name="mt-2 text-sm text-gray-500",
         ),
         rx.el.a(

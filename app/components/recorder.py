@@ -72,7 +72,7 @@ def _gallery_links() -> rx.Component:
                             "padding": "10px",
                         },
                     ),
-                    href=f"/gallery/{class_info['slug']}",
+                    href=f"/gallery?class={class_info['slug']}",
                 ),
             ),
             class_name="grid grid-cols-1 sm:grid-cols-3 gap-4",

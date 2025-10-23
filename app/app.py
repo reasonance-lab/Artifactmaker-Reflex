@@ -15,4 +15,4 @@ app = rx.App(
     ],
 )
 app.add_page(recorder_page, route="/")
-app.add_page(gallery_page, route="/gallery/[class_slug]", on_load=GalleryState.on_load)
+app.add_page(gallery_page, route="/gallery", on_load=GalleryState.on_load)

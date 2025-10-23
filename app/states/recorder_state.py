@@ -60,10 +60,8 @@ class RecorderState(rx.State):
         self.audio_file = None
         self.transcript = ""
         self.recording_status = "idle"
-        return [
-            rx.clear_selected_files("image_upload"),
-            rx.clear_selected_files("video_upload"),
-        ]
+        yield rx.clear_selected_files("image_upload")
+        yield rx.clear_selected_files("video_upload")
 
     async def _get_upload_files(self, filenames: list[str]) -> list[rx.UploadFile]:
         upload_dir = rx.get_upload_dir()
