@@ -16,7 +16,13 @@ class GalleryState(rx.State):
     selected_class_slug: str = ""
     available_dates: list[str] = []
     current_date_index: int = -1
-    current_entry: EntryData = {}
+    current_entry: EntryData = {
+        "images": [],
+        "videos": [],
+        "audio_path": None,
+        "typed_text": "",
+        "transcript": "",
+    }
 
     @rx.event
     def on_load(self):
@@ -46,7 +52,13 @@ class GalleryState(rx.State):
         if self.current_date_index < 0 or self.current_date_index >= len(
             self.available_dates
         ):
-            self.current_entry = {}
+            self.current_entry = {
+                "images": [],
+                "videos": [],
+                "audio_path": None,
+                "typed_text": "",
+                "transcript": "",
+            }
             return
         date_str = self.available_dates[self.current_date_index]
         entry_data = storage.load_entry(self.selected_class_slug, date_str)
@@ -54,8 +66,20 @@ class GalleryState(rx.State):
 
     def _process_entry_data(self, entry_data):
         if not entry_data:
-            return {}
-        processed = {}
+            return {
+                "images": [],
+                "videos": [],
+                "audio_path": None,
+                "typed_text": "",
+                "transcript": "",
+            }
+        processed: EntryData = {
+            "images": [],
+            "videos": [],
+            "audio_path": None,
+            "typed_text": "",
+            "transcript": "",
+        }
         for key, value in entry_data.items():
             if isinstance(value, list) and value and hasattr(value[0], "as_posix"):
                 processed[key] = [p.as_posix().replace("data/", "") for p in value]
