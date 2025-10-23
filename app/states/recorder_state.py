@@ -62,6 +62,7 @@ class RecorderState(rx.State):
         self.recording_status = "idle"
         yield rx.clear_selected_files("image_upload")
         yield rx.clear_selected_files("video_upload")
+        return
 
     async def _get_upload_files(self, filenames: list[str]) -> list[rx.UploadFile]:
         upload_dir = rx.get_upload_dir()
@@ -93,7 +94,8 @@ class RecorderState(rx.State):
             )
             if success:
                 yield rx.toast.success("Entry saved successfully!")
-                yield self._reset_inputs()
+                for event in self._reset_inputs():
+                    yield event
             else:
                 yield rx.toast.error("Failed to save entry. Please try again.")
         except Exception as e:
