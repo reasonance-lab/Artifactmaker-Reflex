@@ -195,7 +195,7 @@ def _voice_recorder() -> rx.Component:
                 rx.el.button(
                     rx.icon("play", class_name="mr-2"),
                     "Start Recording",
-                    on_click=RecorderState.start_recording,
+                    on_click=RecorderState.start_recording(),
                     style={"background_color": RecorderState.accent_color},
                     class_name="flex items-center justify-center px-6 py-3 rounded-xl text-white font-semibold transition-colors shadow-sm w-full",
                 ),
@@ -207,7 +207,7 @@ def _voice_recorder() -> rx.Component:
                 rx.el.button(
                     rx.icon("square", class_name="mr-2"),
                     "Stop Recording",
-                    on_click=RecorderState.stop_recording,
+                    on_click=RecorderState.stop_recording(),
                     class_name="flex items-center justify-center px-6 py-3 rounded-xl bg-red-500 text-white font-semibold transition-colors shadow-sm w-full",
                 ),
                 rx.el.div(
