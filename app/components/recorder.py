@@ -288,7 +288,7 @@ window.checkRecorderSupport = function() {
 }
 
 window.startRecording = async function() {
-    if (checkRecorderSupport() === 'unsupported') {
+    if (window.checkRecorderSupport() === 'unsupported') {
         return 'unsupported';
     }
     try {
@@ -304,15 +304,23 @@ window.startRecording = async function() {
             }
             const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
             const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
-            const upload_event = `_reflex.event_handlers.process_audio_and_transcribe`;
-            if (window[upload_event]) {
-                const uploader = new window.FileReader();
-                uploader.onload = (e) => {
-                    window[upload_event](e.target.result, {file: file});
+
+            // Use a specific event handler for processing the audio blob
+            const process_event = window.reflex_handlers.process_audio_and_transcribe;
+            if (process_event) {
+                // Create a temporary file object for the backend
+                const temp_file = {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    lastModified: file.lastModified,
                 };
-                uploader.readAsDataURL(file);
+                // Use rx.upload to send the file to the backend
+                const files = [file];
+                const uploadController = new rx.UploadController(process_event, files);
+                await uploadController.start();
             } else {
-                console.error('Reflex event handler not found.');
+                console.error('Reflex event handler for audio processing not found.');
             }
             audioChunks = [];
         };
