@@ -83,18 +83,20 @@ def _gallery_links() -> rx.Component:
 def _class_selector() -> rx.Component:
     return rx.el.div(
         _form_section_header("school", "Class"),
-        rx.el.select(
-            rx.foreach(
-                list(classes.CLASS_INFO.values()),
-                lambda class_info: rx.el.option(
-                    f"{class_info['emoji']} {class_info['name']}",
-                    value=class_info["slug"],
-                ),
+        rx.select.root(
+            rx.select.trigger(class_name="w-full text-left"),
+            rx.select.content(
+                rx.foreach(
+                    list(classes.CLASS_INFO.values()),
+                    lambda class_info: rx.select.item(
+                        f"{class_info['emoji']} {class_info['name']}",
+                        value=class_info["slug"],
+                    ),
+                )
             ),
             value=RecorderState.selected_class_slug,
             on_change=RecorderState.set_selected_class_slug,
             size="3",
-            class_name="w-full text-base",
             style={"--accent-color": RecorderState.accent_color},
         ),
     )
