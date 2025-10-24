@@ -28,31 +28,17 @@ class RecorderState(rx.State):
 
     @rx.event
     async def handle_image_upload(self, files: list[rx.UploadFile]):
-        self.image_files = []
-        for file in files:
-            upload_data = await file.read()
-            upload_dir = rx.get_upload_dir()
-            upload_dir.mkdir(parents=True, exist_ok=True)
-            file_path = upload_dir / file.name
-            with file_path.open("wb") as f:
-                f.write(upload_data)
-            self.image_files.append(file.name)
+        """Handle the image file selection, but do not save them yet."""
+        self.image_files = [file.name for file in files]
         if self.image_files:
-            yield rx.toast.success(f"{len(self.image_files)} image(s) selected.")
+            yield rx.toast.info(f"{len(self.image_files)} image(s) selected.")
 
     @rx.event
     async def handle_video_upload(self, files: list[rx.UploadFile]):
-        self.video_files = []
-        for file in files:
-            upload_data = await file.read()
-            upload_dir = rx.get_upload_dir()
-            upload_dir.mkdir(parents=True, exist_ok=True)
-            file_path = upload_dir / file.name
-            with file_path.open("wb") as f:
-                f.write(upload_data)
-            self.video_files.append(file.name)
+        """Handle the video file selection, but do not save them yet."""
+        self.video_files = [file.name for file in files]
         if self.video_files:
-            yield rx.toast.success(f"{len(self.video_files)} video(s) selected.")
+            yield rx.toast.info(f"{len(self.video_files)} video(s) selected.")
 
     def _reset_inputs(self):
         self.entry_date = datetime.date.today().isoformat()
@@ -77,13 +63,16 @@ class RecorderState(rx.State):
 
     @rx.event
     async def save_entry_event(self):
-        image_uploads = await self._get_upload_files(self.image_files)
-        video_uploads = await self._get_upload_files(self.video_files)
-        audio_upload = (
-            (await self._get_upload_files([self.audio_file]))[0]
-            if self.audio_file
-            else None
-        )
+        image_uploads = await self.get_upload_files(upload_id="image_upload")
+        video_uploads = await self.get_upload_files(upload_id="video_upload")
+        audio_upload = None
+        if self.audio_file:
+            upload_dir = rx.get_upload_dir()
+            audio_path = upload_dir / self.audio_file
+            if audio_path.exists():
+                audio_upload = rx.UploadFile(
+                    name=self.audio_file, data=audio_path.read_bytes()
+                )
         try:
             success = storage.save_entry(
                 class_slug=self.selected_class_slug,

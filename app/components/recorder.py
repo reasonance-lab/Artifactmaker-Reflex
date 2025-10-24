@@ -122,18 +122,18 @@ def _file_uploaders() -> rx.Component:
             _file_upload_component(
                 id="image_upload",
                 icon="image",
-                text="Upload Images",
+                text="Upload Images (up to 5)",
                 accept={"image/*": classes.SUPPORTED_IMAGES},
-                on_upload=RecorderState.handle_image_upload,
-                files_var=RecorderState.image_files,
+                max_files=5,
+                on_select=RecorderState.handle_image_upload,
             ),
             _file_upload_component(
                 id="video_upload",
                 icon="video",
-                text="Upload Videos",
+                text="Upload Videos (up to 2)",
                 accept={"video/*": classes.SUPPORTED_VIDEOS},
-                on_upload=RecorderState.handle_video_upload,
-                files_var=RecorderState.video_files,
+                max_files=2,
+                on_select=RecorderState.handle_video_upload,
             ),
             class_name="grid grid-cols-1 sm:grid-cols-2 gap-4",
         ),
@@ -145,8 +145,8 @@ def _file_upload_component(
     icon: str,
     text: str,
     accept: dict,
-    on_upload: rx.event.EventType,
-    files_var: rx.Var[list[str]],
+    max_files: int | None,
+    on_select: rx.event.EventType,
 ) -> rx.Component:
     return rx.el.div(
         rx.upload.root(
@@ -162,17 +162,9 @@ def _file_upload_component(
             id=id,
             multiple=True,
             accept=accept,
+            max_files=max_files,
+            on_drop=on_select(rx.upload_files(upload_id=id)),
             class_name="w-full",
-        ),
-        rx.el.button(
-            "Upload",
-            on_click=on_upload(rx.upload_files(upload_id=id)),
-            size="1",
-            class_name="mt-2 w-full",
-            style={
-                "background_color": RecorderState.accent_color + "1A",
-                "color": RecorderState.accent_color,
-            },
         ),
         rx.el.div(
             rx.foreach(
